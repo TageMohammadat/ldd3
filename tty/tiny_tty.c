@@ -496,7 +496,7 @@ static const struct tty_operations serial_ops = {
 	.close = tiny_close,
 	.write = tiny_write,
 	.write_room = tiny_write_room,
-	.set_termios = tiny_set_termios,
+	.set_termios = (void (*)(struct tty_struct *, const struct ktermios *)) tiny_set_termios, /*casting required for linux 6.2.0-rc3*/
 	.proc_show = tiny_proc_show,
 	.tiocmget = tiny_tiocmget,
 	.tiocmset = tiny_tiocmset,
@@ -511,7 +511,7 @@ static int __init tiny_init(void)
 	int i;
 
 	/* allocate the tty driver */
-	tiny_tty_driver = alloc_tty_driver(TINY_TTY_MINORS);
+	tiny_tty_driver = tty_alloc_driver(TINY_TTY_MINORS,tiny_tty_driver->flags ); /*tty_alloc_driver(TINY_TTY_MINORS)-> alloc_tty_driver(TINY_TTY_MINORS,tiny_tty_driver->flags ) for linux 6.2.0-rc3 */
 	if (!tiny_tty_driver)
 		return -ENOMEM;
 
@@ -535,7 +535,7 @@ static int __init tiny_init(void)
 	retval = tty_register_driver(tiny_tty_driver);
 	if (retval) {
 		pr_err("failed to register tiny tty driver");
-		put_tty_driver(tiny_tty_driver);
+		tty_driver_kref_put(tiny_tty_driver); /*tty_driver_kref_put -> put_tty_driver for linux 6.2.0-rc3*/
 		return retval;
 	}
 
